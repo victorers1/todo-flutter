@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
 import 'models/item.dart';
 
 void main() => runApp(MyApp());
@@ -19,13 +18,17 @@ class MyApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
-  var items = new List<Item>();
+  var todoItems = new List<Item>();
+  var doneItems = new List<Item>();
 
   HomePage() {
-    items = [];
-    items.add(Item(title: "⬅️ Swipe left to delete", done: false));
-    items.add(Item(title: "Swipe right to mark as done ➡️", done: false));
-    items.add(Item(title: "That's all for now ✔️", done: true));
+    todoItems = [];
+    todoItems.add(Item(title: "⬅️ Swipe left to delete", done: false));
+    todoItems.add(Item(title: "Swipe right to mark as done ➡️", done: false));
+    todoItems.add(Item(title: "Learn how to use a todo app ✔️", done: false));
+
+    doneItems.add(Item(title: '⬅️ Swipe left to delete', done: true));
+    doneItems.add(Item(title: "Swipe right to mark as undone ➡️", done: true));
   }
 
   @override
@@ -38,20 +41,34 @@ class _HomePageState extends State<HomePage> {
   void add() {
     if (newTaskCtrl.text.isEmpty) return;
     setState(() {
-      widget.items.add(Item(title: newTaskCtrl.text, done: false));
+      widget.todoItems.add(Item(title: newTaskCtrl.text, done: false));
       newTaskCtrl.clear();
     });
   }
 
-  void remove(int index) {
+  void remove(int index, List<Item> list) {
     setState(() {
-      widget.items.removeAt(index);
+      list.removeAt(index);
     });
   }
 
   void doTask(int index) {
     setState(() {
-      widget.items[index].done = true;
+      widget.todoItems[index].done = true;
+      widget.doneItems.add(widget.todoItems[index]);
+      widget.todoItems.removeAt(index);
+    });
+
+    print(widget.todoItems);
+    print(widget.doneItems);
+  }
+
+  void undoTask(int index) {
+    setState(() {
+      Item item = widget.doneItems[index];
+      item.done = false;
+      widget.todoItems.add(item);
+      widget.doneItems.removeAt(index);
     });
   }
 
@@ -75,49 +92,128 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      body: ListView.builder(
-        itemCount: widget.items.length,
-        itemBuilder: (BuildContext ctx, int index) {
-          final item = widget.items[index];
-
-          return Dismissible(
-            key: Key(item.title),
-            child: CheckboxListTile(
-              title: Text(item.title),
-              value: item.done,
-              onChanged: (value) {
-                setState(() {
-                  item.done = value;
-                  print(value);
-                });
+      body: Column(
+        children: <Widget>[
+          Container(
+            padding: EdgeInsets.fromLTRB(0, 20, 20, 0),
+            child: Text(
+              'To do',
+              textAlign: TextAlign.start,
+              style: Theme.of(context).textTheme.headline,
+            ),
+          ),
+          new Expanded(
+            child: ListView.builder(
+              itemCount: widget.todoItems.length,
+              itemBuilder: (BuildContext ctx, int index) {
+                final item = widget.todoItems[index];
+                return Dismissible(
+                  key: Key(item.title),
+                  child: CheckboxListTile(
+                    title: Text(item.title),
+                    value: item.done,
+                    onChanged: (value) {
+                      setState(() {
+                        // item.done = value;
+                        doTask(index);
+                        print(value);
+                      });
+                    },
+                  ),
+                  background: Container(
+                    padding: EdgeInsets.fromLTRB(15, 0, 15, 0),
+                    color: Colors.green,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Icon(
+                        Icons.done,
+                        size: 35,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  secondaryBackground: Container(
+                    padding: EdgeInsets.fromLTRB(15, 0, 15, 0),
+                    color: Colors.red,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Icon(
+                        Icons.delete_forever,
+                        size: 35,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  onDismissed: (direction) {
+                    if (direction == DismissDirection.endToStart) {
+                      remove(index, widget.todoItems);
+                    } else if (direction == DismissDirection.startToEnd) {
+                      doTask(index);
+                    }
+                  },
+                );
               },
             ),
-            background: Container(
-              padding: EdgeInsets.fromLTRB(15, 0, 15, 0),
-              color: Colors.green,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Icon(
-                  Icons.done,
-                  size: 35,
-                  color: Colors.white,
-                ),
-              ),
+          ),
+          Container(
+            padding: EdgeInsets.fromLTRB(0, 20, 20, 0),
+            child: Text(
+              'Done',
+              textAlign: TextAlign.left,
+              style: Theme.of(context).textTheme.headline,
             ),
-            secondaryBackground: Container(
-              padding: EdgeInsets.fromLTRB(15, 0, 15, 0),
-              color: Colors.red,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Icon(
-                  Icons.delete_forever,
-                  size: 35,
-                  color: Colors.white,
-                ),
-              ),
+          ),
+          new Expanded(
+            child: ListView.builder(
+              itemCount: widget.doneItems.length,
+              itemBuilder: (BuildContext ctx, int index) {
+                final item = widget.doneItems[index];
+
+                return Dismissible(
+                  key: Key(item.title),
+                  child: Container(
+                    padding: EdgeInsets.all(15),
+                    child: Text(
+                      item.title,
+                      style: TextStyle(),
+                    ),
+                  ),
+                  background: Container(
+                    padding: EdgeInsets.fromLTRB(15, 0, 15, 0),
+                    color: Colors.green,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Icon(
+                        Icons.undo,
+                        size: 35,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  secondaryBackground: Container(
+                    padding: EdgeInsets.fromLTRB(15, 0, 15, 0),
+                    color: Colors.red,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Icon(
+                        Icons.delete_forever,
+                        size: 35,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  onDismissed: (direction) {
+                    if (direction == DismissDirection.endToStart) {
+                      remove(index, widget.doneItems);
+                    } else if (direction == DismissDirection.startToEnd) {
+                      undoTask(index);
+                    }
+                  },
+                );
+              },
             ),
-          );
-        },
+          )
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: add,
