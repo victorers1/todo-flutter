@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:todo/widgets/done.dart';
+import 'package:todo/widgets/todo.dart';
 import 'models/item.dart';
 
 void main() => runApp(MyApp());
@@ -145,7 +147,41 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: Icon(Icons.menu),
+        leading: Builder(
+          builder: (context) => GestureDetector(
+            onTap: () {
+              Scaffold.of(context).showSnackBar(
+                SnackBar(
+                  content: Column(
+                    children: <Widget>[
+                      Container(
+                        padding: EdgeInsets.all(30),
+                        child: Icon(Icons.thumb_up),
+                      ),
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Container(
+                          color: Colors.purple,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          'Menu Open',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+            child: Icon(Icons.menu),
+          ),
+        ),
         title: TextFormField(
           controller: newTaskCtrl,
           keyboardType: TextInputType.text,
@@ -171,24 +207,36 @@ class _HomePageState extends State<HomePage> {
               style: Theme.of(context).textTheme.headline,
             ),
           ),
-          new Expanded(
+          Expanded(
             child: ListView.builder(
               itemCount: widget.todoItems.length,
               itemBuilder: (BuildContext ctx, int index) {
                 final item = widget.todoItems[index];
                 return Dismissible(
                   key: Key(item.title),
-                  child: CheckboxListTile(
-                    title: Text(item.title),
-                    value: item.done,
-                    onChanged: (value) {
+                  child: GestureDetector(
+                    onTap: () {
                       setState(() {
                         // item.done = value;
                         doTask(index);
-                        print(value);
                       });
                     },
+                    child: TodoItem(
+                      todoItem: item,
+                    ),
                   ),
+
+                  //     CheckboxListTile(
+                  //   title: Text(item.title),
+                  //   value: item.done,
+                  //   onChanged: (value) {
+                  //     setState(() {
+                  //       // item.done = value;
+                  //       doTask(index);
+                  //       print(value);
+                  //     });
+                  //   },
+                  // ),
                   background: Container(
                     padding: EdgeInsets.fromLTRB(15, 0, 15, 0),
                     color: Colors.green,
@@ -232,7 +280,7 @@ class _HomePageState extends State<HomePage> {
               style: Theme.of(context).textTheme.headline,
             ),
           ),
-          new Expanded(
+          Expanded(
             child: ListView.builder(
               itemCount: widget.doneItems.length,
               itemBuilder: (BuildContext ctx, int index) {
@@ -240,12 +288,8 @@ class _HomePageState extends State<HomePage> {
 
                 return Dismissible(
                   key: Key(item.title),
-                  child: Container(
-                    padding: EdgeInsets.all(15),
-                    child: Text(
-                      item.title,
-                      style: TextStyle(),
-                    ),
+                  child: DoneItem(
+                    doneItem: item,
                   ),
                   background: Container(
                     padding: EdgeInsets.fromLTRB(15, 0, 15, 0),
