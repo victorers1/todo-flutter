@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'models/item.dart';
 
 void main() => runApp(MyApp());
@@ -23,12 +26,9 @@ class HomePage extends StatefulWidget {
 
   HomePage() {
     todoItems = [];
-    todoItems.add(Item(title: "⬅️ Swipe left to delete", done: false));
-    todoItems.add(Item(title: "Swipe right to mark as done ➡️", done: false));
-    todoItems.add(Item(title: "Learn how to use a todo app ✔️", done: false));
 
-    doneItems.add(Item(title: '⬅️ Swipe left to delete', done: true));
-    doneItems.add(Item(title: "Swipe right to mark as undone ➡️", done: true));
+    var d = new DateTime.now().toString();
+    print("DateTime.now()" + d);
   }
 
   @override
@@ -44,12 +44,15 @@ class _HomePageState extends State<HomePage> {
       widget.todoItems.add(Item(title: newTaskCtrl.text, done: false));
       newTaskCtrl.clear();
     });
+
+    saveTasks();
   }
 
-  void remove(int index, List<Item> list) {
+  void removeTask(int index, List<Item> list) {
     setState(() {
       list.removeAt(index);
     });
+    saveTasks();
   }
 
   void doTask(int index) {
@@ -59,8 +62,7 @@ class _HomePageState extends State<HomePage> {
       widget.todoItems.removeAt(index);
     });
 
-    print(widget.todoItems);
-    print(widget.doneItems);
+    saveTasks();
   }
 
   void undoTask(int index) {
@@ -70,6 +72,73 @@ class _HomePageState extends State<HomePage> {
       widget.todoItems.add(item);
       widget.doneItems.removeAt(index);
     });
+    saveTasks();
+  }
+
+  Future checkFirstLaunch() async {
+    var prefs = await SharedPreferences.getInstance();
+    var isFirstLaunch = prefs.getBool('launch');
+
+    print("isFirstLaunch: " + isFirstLaunch.toString());
+
+    if (isFirstLaunch == null) {
+      prefs.setBool('launch', false);
+      loadFirstTasks();
+    } else if (isFirstLaunch == false) {
+      loadTasks();
+    }
+  }
+
+  void loadFirstTasks() async {
+    setState(() {
+      widget.todoItems.add(Item(title: "⬅️ Swipe left to delete", done: false));
+      widget.todoItems
+          .add(Item(title: "Swipe right to mark as done ➡️", done: false));
+      widget.todoItems
+          .add(Item(title: "Dismiss previous tasks ✔️", done: false));
+
+      widget.doneItems.add(Item(title: '⬅️ Swipe left to delete', done: true));
+      widget.doneItems
+          .add(Item(title: "Swipe right to mark as undone ➡️", done: true));
+    });
+
+    saveTasks();
+    print("Loaded firsts tasks");
+  }
+
+  Future loadTasks() async {
+    var prefs = await SharedPreferences.getInstance();
+    var todo = prefs.getString('todo');
+    var done = prefs.getString('done');
+
+    if (todo != null) {
+      Iterable decoded = jsonDecode(todo);
+      List<Item> result = decoded.map((x) => Item.fromJson(x)).toList();
+      setState(() {
+        widget.todoItems = result;
+      });
+    }
+
+    if (done != null) {
+      Iterable decoded = jsonDecode(done);
+      List<Item> result = decoded.map((x) => Item.fromJson(x)).toList();
+      setState(() {
+        widget.doneItems = result;
+      });
+    }
+
+    print("Loaded previous tasks");
+  }
+
+  void saveTasks() async {
+    var prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString('todo', jsonEncode(widget.todoItems));
+    await prefs.setString('done', jsonEncode(widget.doneItems));
+  }
+
+  _HomePageState() {
+    checkFirstLaunch();
   }
 
   @override
@@ -146,7 +215,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   onDismissed: (direction) {
                     if (direction == DismissDirection.endToStart) {
-                      remove(index, widget.todoItems);
+                      removeTask(index, widget.todoItems);
                     } else if (direction == DismissDirection.startToEnd) {
                       doTask(index);
                     }
@@ -204,7 +273,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   onDismissed: (direction) {
                     if (direction == DismissDirection.endToStart) {
-                      remove(index, widget.doneItems);
+                      removeTask(index, widget.doneItems);
                     } else if (direction == DismissDirection.startToEnd) {
                       undoTask(index);
                     }
